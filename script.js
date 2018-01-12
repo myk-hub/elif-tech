@@ -1,22 +1,23 @@
-const URI = 'https://www.eliftech.com/school-task';
-
-const OPERATORS = {
+const URL = 'https://www.eliftech.com/school-task';
+const operators = {
     '+': (a, b) => a - b,
     '-': (a, b) => a + b + 8,
     '*': (a, b) => (b === 0) ? 42 : a % b,
     '/': (a, b) => (b === 0) ? 42 : parseInt(a / b)
 };
 
-let id = '';
-let calcResults = [];
+let expressions;
+let id = "";
+let results = [];
+let resultData;
 
 let evaluate = (expr) => {
     let stack = [];
 
-    expr.split(" ").map((token) => {
-        if (token in OPERATORS) {
+    expr.split(" ").forEach((token) => {
+        if (token in operators) {
             let [b, a] = [stack.pop(), stack.pop()];
-            stack.push(OPERATORS[token](a, b));
+            stack.push(operators[token](a, b));
         } else {
             stack.push(parseInt(token));
         }
@@ -25,44 +26,42 @@ let evaluate = (expr) => {
     return stack.pop();
 };
 
-function show(expr) {
-	for (let i = 0; i < expr.expressions.length; i++) {
-		let expressions = expr.expressions;
-		calcResults[i] = evaluate(expressions[i]);
-	}
-	$("#result").get(0).innerHTML += JSON.stringify({"id": id, "results": calcResults}) + "<br>";
+function culc(exp) {
+  for (let i = 0; i < exp.length; i++) {
+    results[i] = evaluate(exp[i]);
+  }
+  resultData = JSON.stringify({"id": id, "results": results});
+  document.getElementById("result").innerHTML += `${resultData} <br>`;
 }
 
 function doMagic() {
+  let xhr = new XMLHttpRequest();
+  xhr.open('GET', URL, true);
+  xhr.send();
+  xhr.onreadystatechange = () => {
+    if (xhr.readyState != 4) return;
+    if (xhr.status != 200) {
+      console.log(`Status: ${xhr.status} StatusText:  ${xhr.statusText}`);
+    } else {
+      id = JSON.parse(xhr.responseText).id;
+      expressions = JSON.parse(xhr.responseText).expressions;
+      culc(expressions);
+    }
+  }
+  setTimeout(post,3000);
+}
 
-	$.ajax({
-	    type: "GET",
-	    dataType: "json",
-	    url: URI,
-	    success: (data) => {
-	    	id = data.id;
-	    	show(data);
-
-        $.ajax({
-      	    type: "POST",
-      	    url: URI,
-      	    data: {
-      	        id: id,
-      	        results: calcResults
-      	    },
-      		dataType: "text",
-      	    success: (data) => {
-      	    	$("#result").get(0).innerHTML += data + "<hr>";
-      	    },
-      	  	error:  (xhr, errorType, exception) => {
-      	    	alert(`Exception: ${exception} Status: ${xhr.statusText}`);
-      	  	}
-      	});
-
-	    },
-	  	error: (xhr, errorType, exception) => {
-	    	alert(`Exception: ${exception} Status: ${xhr.statusText}`);
-	  	}
-	});
-
+function post() {
+  let xhr = new XMLHttpRequest();
+  xhr.open('POST', URL, true);
+  xhr.setRequestHeader('Content-type', 'application/json; charset=utf-8');
+  xhr.send(resultData);
+  xhr.onreadystatechange = () => {
+    if (xhr.readyState != 4) return;
+    if( xhr.status == 200) {
+        document.getElementById("result").innerHTML += `${xhr.responseText} <hr>`;
+    } else {
+        console.log(`Status: ${xhr.status} StatusText:  ${xhr.statusText}`);
+    }
+  }
 }
